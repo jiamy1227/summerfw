@@ -1,0 +1,6 @@
+app:
+  name: summerfw
+  value:
+    sub:
+      key: key1
+      value: value1
