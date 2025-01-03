@@ -1,5 +1,6 @@
 package org.summerfw.util;
 
+import org.summerfw.annotataion.Bean;
 import org.summerfw.annotataion.Order;
 
 import java.lang.annotation.Annotation;
@@ -42,6 +43,15 @@ public class ClassUtils {
         return clazzName.substring(0, 1).toLowerCase() + clazzName.substring(1);
     }
 
+    public static String getFactoryBeanName(Method method) {
+        Bean bean = method.getAnnotation(Bean.class);
+        String beanName = bean.value();
+        if (beanName == null || beanName.isEmpty()) {
+            beanName = method.getName();
+        }
+        return beanName;
+    }
+
     public static Constructor<?> getConstructor(Class<?> clazz) {
         Constructor<?>[] constructors = clazz.getConstructors();
         if (constructors.length == 0) {
@@ -56,8 +66,16 @@ public class ClassUtils {
     /**
      * 获取类上指定注解的value值
      */
-    public static int getOrderValue(Class<?> clazz) {
+    public static int getOrderValueFromClass(Class<?> clazz) {
         Order order = clazz.getAnnotation(Order.class);
+        return order == null ? Integer.MIN_VALUE : order.value();
+    }
+
+    /**
+     * 获取工厂方法上指定注解的value值
+     */
+    public static int getOrderValueFromFactoryMethod(Method method) {
+        Order order = method.getAnnotation(Order.class);
         return order == null ? Integer.MIN_VALUE : order.value();
     }
 

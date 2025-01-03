@@ -1,16 +1,15 @@
 package org.summerfw.context;
 
+import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import org.summerfw.annotataion.Component;
-import org.summerfw.annotataion.ComponentScan;
-import org.summerfw.annotataion.Configuration;
-import org.summerfw.annotataion.Primary;
+import org.summerfw.annotataion.*;
 import org.summerfw.io.PropertyResolver;
 import org.summerfw.io.Resource;
 import org.summerfw.io.ResourceResolver;
 import org.summerfw.util.ClassUtils;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -75,7 +74,7 @@ public class AnnotationConfigApplicationContext {
                         ClassUtils.getBeanName(clazz),
                         clazz,
                         ClassUtils.getConstructor(clazz),
-                        ClassUtils.getOrderValue(clazz),
+                        ClassUtils.getOrderValueFromClass(clazz),
                         clazz.isAnnotationPresent(Primary.class),
                         null,
                         null,
@@ -93,9 +92,54 @@ public class AnnotationConfigApplicationContext {
                 Configuration configuration = ClassUtils.getAnnotation(clazz, Configuration.class);
                 if (configuration != null) {
                     // 从工厂方法@Bean中获取bean定义
+                    getFactoryBeans(clazz, beanDefinitionMap);
                 }
             }
         }
         return beanDefinitionMap;
+    }
+
+    /**
+     * 获取工程方法定义的bean信息
+     *
+     * @param clazz
+     * @param beanDefinitionMap
+     */
+    private void getFactoryBeans(Class<?> clazz, Map<String, BeanDefinition> beanDefinitionMap) {
+        Method[] methods = clazz.getMethods();
+        for (Method method : methods) {
+            Bean bean = method.getAnnotation(Bean.class);
+            if (bean != null) {
+                BeanDefinition beanDefinition = new BeanDefinition(
+                        ClassUtils.getFactoryBeanName(method),
+                        method.getReturnType(),
+                        method.getName(),
+                        method,
+                        ClassUtils.getOrderValueFromFactoryMethod(method),
+                        method.isAnnotationPresent(Primary.class),
+                        bean.initMethod() == null ? null : bean.initMethod(),
+                        bean.destroyMethod() == null ? null : bean.destroyMethod(),
+                        null,
+                        null
+                );
+                if (beanDefinitionMap.get(beanDefinition.getName()) != null) {
+                    beanDefinitionMap.put(beanDefinition.getName(), beanDefinition);
+                } else {
+                    throw new RuntimeException("bean定义重复"+ beanDefinition.getName());
+                }
+            }
+        }
+    }
+
+    // 根据Name查找BeanDefinition，如果Name不存在，返回null
+    @Nullable
+    public BeanDefinition findBeanDefinition(String name) {
+        return this.beans.get(name);
+    }
+
+    // 根据Type查找某个BeanDefinition，如果不存在返回null，如果存在多个返回@Primary标注的一个:
+    @Nullable
+    public BeanDefinition findBeanDefinition(Class<?> type) {
+        return null; //todo
     }
 }
