@@ -27,11 +27,14 @@ public class YamlUtil {
     private static void flatten(String preKey, Map<String, Object> configs, Map<String,String> results) {
         for(Map.Entry<String, Object> entry : configs.entrySet()) {
             String key = entry.getKey();
+            if (preKey != null && !"".equals(preKey)) {
+                key = preKey + '.' + key;
+            }
             Object value = entry.getValue();
             if (value instanceof String) {
                 results.put(key, (String) value);
             } else if (value instanceof Map){
-                flatten((Map<String, Object>) value, results);
+                flatten(key, (Map<String, Object>) value, results);
             }
         }
     }

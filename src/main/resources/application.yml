@@ -1,6 +1,6 @@
 app:
   name: summerfw
-  value:
+  item:
     sub:
-      key: key1
-      value: value1
+      name: key1
+      prop: value1
