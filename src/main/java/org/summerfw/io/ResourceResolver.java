@@ -53,7 +53,9 @@ public class ResourceResolver {
                     processDirectory(file, collector, mapper);
                 } else {
                     // 如果是文件，执行Function，Resource转换为目标类型
-                    Resource res = new Resource(file.getName(), file.getPath().substring(file.getPath().indexOf(this.basePackagePath)).replace(File.separatorChar, '.'));
+                    Resource res = new Resource(file.getName().substring(0,file.getName().length()-6),
+                            file.getPath().substring(file.getPath().indexOf(this.basePackagePath), file.getPath().indexOf(File.separatorChar + file.getName()))
+                                    .replace(File.separatorChar, '.'));
                     R r = mapper.apply(res);
                     collector.add(r);
                 }

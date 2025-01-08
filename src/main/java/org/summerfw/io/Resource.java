@@ -17,4 +17,8 @@ public class Resource {
       this.name = name;
       this.path = path;
    }
+
+   public String getClassFullName() {
+      return path + '.' + name;
+   }
 }

@@ -39,7 +39,7 @@ public class ClassUtils {
     }
 
     public static String getBeanName(Class<?> clazz) {
-        String clazzName = clazz.getName();
+        String clazzName = clazz.getSimpleName();
         return clazzName.substring(0, 1).toLowerCase() + clazzName.substring(1);
     }
 
