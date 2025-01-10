@@ -1,7 +1,13 @@
-app:
+summer:
   name: summerfw
   version: 1.0
   item:
     sub:
       name: key1
       prop: value1
+  datasource:
+    url: jdbc:mysql://localhost:3306/test
+    username: root
+    password: root
+    driver-class-name: com.mysql.jdbc.Driver
+

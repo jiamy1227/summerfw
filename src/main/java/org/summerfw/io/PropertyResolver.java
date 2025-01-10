@@ -51,13 +51,23 @@ public class PropertyResolver {
 
     public <T> T getProperty(String key, Class<T> targetType) {
         // value -> ${app.name}
+        int defaultValueIndex = key.indexOf(":");
+        String defaultValue = "";
+        if (defaultValueIndex > -1) {
+            defaultValue = key.substring(defaultValueIndex + 1 , key.length() - 1);
+        }
         if (key.startsWith("${") && key.endsWith("}")) {
-            key = key.substring(2, key.length() - 1);
+            int keyEndIndex = defaultValueIndex == -1 ? key.length() - 1 : defaultValueIndex;
+            key = key.substring(2, keyEndIndex);
         }
 
         String s = properties.get(key);
         if(s ==null){
-            return null;
+            if (defaultValueIndex > -1) {
+                s = defaultValue;
+            } else {
+                return null;
+            }
         }
         Function<String, Object> fn = this.converters.get(targetType);
         return (T) fn.apply(s);

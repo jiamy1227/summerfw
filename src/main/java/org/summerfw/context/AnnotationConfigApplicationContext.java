@@ -226,7 +226,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         for (int i = 0; i < parameters.length; i++) {
             Value valueAnno = parameters[i].getAnnotation(Value.class);
             if(valueAnno!=null){
-                args[i] = propertyResolver.getProperty(valueAnno.value());
+                args[i] = propertyResolver.getProperty(valueAnno.value(), parameters[i].getType());
             } else {
                 Autowired autowiredAnno = parameters[i].getAnnotation(Autowired.class);
                 String beanName = autowiredAnno.name();
@@ -365,14 +365,14 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
             String name = autowired.name();
             // 字段注入
             if (field != null) {
-                Object depends = name.isEmpty() ? findBeanDefinition(field.getType()) : findBeanDefinition(name);
+                Object depends = name.isEmpty() ? findBeanDefinition(field.getType()).getInstance() : findBeanDefinition(name).getInstance();
                 try {
                     field.set(bean, depends);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
             } else if (method != null) {
-                Object depends = name.isEmpty() ? findBeanDefinition(method.getReturnType()) : findBeanDefinition(name);
+                Object depends = name.isEmpty() ? findBeanDefinition(method.getReturnType()).getInstance() : findBeanDefinition(name).getInstance();
                 try {
                     method.invoke(bean, depends);
                 } catch (IllegalAccessException e) {
