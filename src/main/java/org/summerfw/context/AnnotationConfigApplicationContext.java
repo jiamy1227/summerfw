@@ -7,6 +7,7 @@ import org.summerfw.annotataion.*;
 import org.summerfw.io.PropertyResolver;
 import org.summerfw.io.Resource;
 import org.summerfw.io.ResourceResolver;
+import org.summerfw.util.ApplicationContextUtils;
 import org.summerfw.util.ClassUtils;
 
 import java.lang.reflect.*;
@@ -32,6 +33,9 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
 
     public AnnotationConfigApplicationContext(Class<?> configClass, PropertyResolver propertyResolver) {
 
+        // 设置到util中
+        ApplicationContextUtils.setApplicationContext(this);
+
         this.propertyResolver = propertyResolver;
 
         // 扫描获取所有Bean的Class类型:
@@ -48,8 +52,9 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         // 创建BeanPostProcessor
         List<BeanPostProcessor> beanPostProcessors =
                 this.beans.values().stream()
-                        .filter(this::isBeanPostProcessor).
-                        map(beanDefinition -> (BeanPostProcessor) createBeanAsEarlySingleton(beanDefinition))
+                        .filter(this::isBeanPostProcessor)
+                        .sorted()
+                        .map(beanDefinition -> (BeanPostProcessor) createBeanAsEarlySingleton(beanDefinition))
                         .toList();
         this.beanPostProcessors.addAll(beanPostProcessors);
 
@@ -142,7 +147,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
      * @param beanDefinitionMap
      */
     private void getFactoryBeans(Class<?> clazz, Map<String, BeanDefinition> beanDefinitionMap) {
-        Method[] methods = clazz.getMethods();
+        Method[] methods = clazz.getDeclaredMethods();
         for (Method method : methods) {
             Bean bean = method.getAnnotation(Bean.class);
             if (bean != null) {
@@ -158,7 +163,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
                         null,
                         null
                 );
-                if (beanDefinitionMap.get(beanDefinition.getName()) != null) {
+                if (beanDefinitionMap.get(beanDefinition.getName()) == null) {
                     beanDefinitionMap.put(beanDefinition.getName(), beanDefinition);
                 } else {
                     throw new RuntimeException("bean定义重复"+ beanDefinition.getName());
@@ -217,6 +222,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         Parameter[] parameters = executable.getParameters();
         Object[] args = new Object[parameters.length];
 
+        // 构造方法和工厂方法创建bean是强依赖，需要优先实例化起方法参数中的bean
         for (int i = 0; i < parameters.length; i++) {
             Value valueAnno = parameters[i].getAnnotation(Value.class);
             if(valueAnno!=null){
@@ -227,7 +233,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
                 BeanDefinition dependsOnDef = beanName.isEmpty()? findBeanDefinition(parameters[i].getType()) : findBeanDefinition(beanName);
                 Object autowiredBeanInstance = dependsOnDef.getInstance();
                 if (autowiredBeanInstance == null) {
-                    autowiredBeanInstance = createBeanAsEarlySingleton(dependsOnDef);
+                    autowiredBeanInstance = createBeanAsEarlySingleton(dependsOnDef); //创建方法参数注入的bean
                 }
                 args[i] = autowiredBeanInstance;
             }
@@ -247,7 +253,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         } else {
             try {
                 // 通过工厂方法实例化:通过工厂方法获取configurationClass,在获取configurationBean
-                Object configInstance = findBeanDefinition(ClassUtils.getBeanName(def.getFactoryMethod().getDeclaringClass()));
+                Object configInstance = findBeanDefinition(ClassUtils.getBeanName(def.getFactoryMethod().getDeclaringClass())).getInstance();
                 instance = def.getFactoryMethod().invoke(configInstance, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
@@ -257,7 +263,7 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         }
         def.setInstance(instance);
 
-        // 执行beanPostProcessor处理
+        // 执行beanPostProcessor处理 完成bean的实例
         for(BeanPostProcessor postProcessor :this.beanPostProcessors){
             Object processed = postProcessor.postProcessBeforeInitialization(def.getInstance(), def.getName());
             if(def.getInstance() != processed){
@@ -284,7 +290,8 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         List<BeanPostProcessor> postProcessorsCopy = new ArrayList<>(this.beanPostProcessors);
         Collections.reverse(postProcessorsCopy);
         for(BeanPostProcessor postProcessor : postProcessorsCopy){
-            Object o = postProcessor.postProcessOnSetProperty(def.getInstance(), def.getName());
+            // 多个代理，循环还原
+            Object o = postProcessor.postProcessOnSetProperty(beanInstance, def.getName());
             if (o != def.getInstance()) {
                 // def中的instance已经不是原始instance
                 beanInstance = o;
@@ -403,10 +410,20 @@ public class AnnotationConfigApplicationContext implements ConfigurableApplicati
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
         }
+
+        // 执行beanPostProcessor中的afterInit处理
+        // 调用BeanPostProcessor.postProcessAfterInitialization():
+        this.beanPostProcessors.forEach(beanPostProcessor -> {
+            Object processedInstance = beanPostProcessor.postProcessAfterInitialization(def.getInstance(), def.getName());
+            if (processedInstance != def.getInstance()) {
+                def.setInstance(processedInstance);
+            }
+        });
     }
 
     boolean isBeanPostProcessor(BeanDefinition beanDefinition){
-        return beanDefinition.getBeanClass().isAssignableFrom(BeanPostProcessor.class);
+        // isAssignableFrom: 父类.class.isAssignableFrom(子类.class)
+        return BeanPostProcessor.class.isAssignableFrom(beanDefinition.getBeanClass());
     }
 
     @Override

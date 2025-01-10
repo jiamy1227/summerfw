@@ -1,11 +1,11 @@
-package org.summerfw.scan.proxy;
+package org.summerfw.aop;
 
-import org.summerfw.annotataion.Component;
-import org.summerfw.annotataion.Transactional;
-import org.summerfw.annotataion.Value;
+import org.summerfw.annotataion.*;
 
 @Component
-public class OriginBean {
+@Around("aroundInvocationHandler")
+@After("afterInvocationHandler")
+public class SimpleBean {
 
     @Value("${app.name}")
     public String name;
@@ -26,6 +26,12 @@ public class OriginBean {
     }
 
     public String hello(){
+        return "Hello," + name;
+    }
+
+
+    public String helloAfter(){
+        System.out.println("helloAfter");
         return "Hello," + name;
     }
 }
