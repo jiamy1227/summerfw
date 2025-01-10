@@ -41,8 +41,6 @@ public class AnnotationConfigApplicationContextTest {
         PropertyResolver pr = new PropertyResolver(props);
         ApplicationContext context = new AnnotationConfigApplicationContext(AopApplication.class, pr);
         SimpleBean simpleBean = context.getBean(SimpleBean.class);
-        System.out.println(simpleBean.hello());
-
-        System.out.println(simpleBean.helloAfter());
+         System.out.println(simpleBean.hello());
     }
 }

@@ -5,6 +5,7 @@ import org.summerfw.annotataion.*;
 @Component
 @Around("aroundInvocationHandler")
 @After("afterInvocationHandler")
+@Before("beforeInvocationHandler")
 public class SimpleBean {
 
     @Value("${app.name}")

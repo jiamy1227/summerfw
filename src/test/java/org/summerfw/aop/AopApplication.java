@@ -17,4 +17,10 @@ public class AopApplication {
     AfterProxyBeanPostProcessor createAfterProxyBeanPostProcessor(){
         return new AfterProxyBeanPostProcessor();
     }
+
+    @Bean("beforeProxyBeanPostProcessor")
+    BeforeProxyBeanPostProcessor createBeforeProxyBeanPostProcessor(){
+        return new BeforeProxyBeanPostProcessor();
+    }
+
 }
